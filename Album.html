@@ -1,0 +1,297 @@
+<!doctype html> 
+<html lang="es"> 
+<head> 
+<meta charset="utf-8" /> 
+<meta name="viewport" content="width=device-width,initial-scale=1" /> 
+<title>Corazones y Álbum con comentarios</title> 
+<style> 
+:root{ 
+  --bg:#1a0a1f; 
+  --accent:#ff4fc1; 
+  --border:#ff66c2; 
+} 
+html, body { 
+  margin:0; 
+  height:100%; 
+  overflow-x:hidden; 
+  overflow-y:hidden; 
+  font-family: sans-serif; 
+  background: linear-gradient(180deg, #1a0a1f 0%, #2a0f2f 100%); 
+} 
+
+/* Botones Volver */ 
+#volverBtn, #volverBtnBottom{
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 10px 25px;
+  font-size: 1rem;
+  font-weight: bold;
+  color: white;
+  background: linear-gradient(45deg, #ff4fc1, #ff66c2);
+  border: 2px solid #ff66c2;
+  border-radius: 10px;
+  cursor: pointer;
+  z-index: 20;
+  box-shadow: 0 0 15px #ff4fc1, 0 0 30px #ff66c2;
+  transition: transform 0.3s, box-shadow 0.3s, opacity 0.3s;
+}
+#volverBtnBottom{
+  bottom: 10px;
+}
+#volverBtn:hover, #volverBtnBottom:hover{
+  transform: translateX(-50%) scale(1.1);
+  box-shadow: 0 0 25px #ff4fc1, 0 0 40px #ff66c2;
+}
+
+/* Corazones de fondo */ 
+.heart{ 
+  position: fixed; 
+  top:-50px; 
+  font-size:20px; 
+  color:var(--accent); 
+  opacity:0.8; 
+  animation-name:fall; 
+  animation-timing-function:linear; 
+  animation-iteration-count:infinite; 
+  pointer-events:none; 
+  z-index:0; 
+} 
+@keyframes fall{ 
+  0% {transform: translateY(0) rotate(0deg);} 
+  100% {transform: translateY(110vh) rotate(360deg);} 
+} 
+
+/* Contenedor del grid de imágenes/videos */ 
+.album-container{ 
+  position:relative; 
+  z-index:1; 
+  display:grid; 
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
+  gap:15px; 
+  padding:20px; 
+  max-width:1200px; 
+  max-height: calc(100vh - 40px); /* <- altura máxima de la ventana */
+  margin:0 auto; 
+  overflow-y: auto; /* <- scroll vertical si hay muchas imágenes */
+}
+.album-container img, .album-container video{ 
+  width:100%; 
+  height:150px; 
+  object-fit:cover; 
+  border:2px solid var(--border); 
+  border-radius:10px; 
+  transition: transform 0.3s, box-shadow 0.3s; 
+  cursor:pointer; 
+} 
+.album-container img:hover, .album-container video:hover{ 
+  transform: scale(1.1); 
+  box-shadow: 0 0 20px var(--accent); 
+} 
+
+/* Lightbox */ 
+.lightbox{ 
+  position:fixed; 
+  top:0; 
+  left:0; 
+  width:100%; 
+  height:100%; 
+  background: rgba(0,0,0,0.8); 
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
+  justify-content:center; 
+  opacity:0; 
+  visibility:hidden; 
+  transition: opacity 0.4s; 
+  z-index:10; 
+  padding:20px; 
+  box-sizing:border-box; 
+} 
+.lightbox.active{ 
+  opacity:1; 
+  visibility:visible; 
+} 
+#lightboxContent{ 
+  display:flex; 
+  flex-direction:column; 
+  align-items:center; 
+  justify-content:center; 
+} 
+.lightbox img, .lightbox video{ 
+  max-width: calc(100vw - 40px); 
+  max-height: calc(100vh - 120px); 
+  border-radius:15px; 
+  box-shadow: 0 0 30px var(--accent); 
+  transform: scale(0.9); 
+  transition: transform 0.4s; 
+} 
+.lightbox.active img, .lightbox.active video{ 
+  transform: scale(1); 
+} 
+.lightbox-text{ 
+  margin-top:15px; 
+  color:white; 
+  font-size:1.2rem; 
+  text-align:center; 
+  max-width:90%; 
+  word-wrap: break-word; 
+} 
+.close-btn{ 
+  position:absolute; 
+  top:20px; 
+  right:30px; 
+  font-size:2rem; 
+  color:white; 
+  cursor:pointer; 
+  z-index:11; 
+  user-select:none; 
+  transition: transform 0.3s; 
+} 
+.close-btn:hover{ 
+  transform: scale(1.2); 
+} 
+</style> 
+</head> 
+<body> 
+
+<!-- Botón Volver -->
+<button id="volverBtnBottom" onclick="window.location.href='Main.html'">Volver</button>
+
+<div class="album-container" id="album"></div> 
+<div class="lightbox" id="lightbox"> 
+  <span class="close-btn" id="closeBtn">✖</span> 
+  <div id="lightboxContent"></div> 
+  <div class="lightbox-text" id="lightboxText"></div> 
+</div> 
+
+<script> 
+// Corazones flotantes 
+function createHeart(){ 
+  const heart = document.createElement('div'); 
+  heart.className = 'heart'; 
+  heart.textContent = '❤'; 
+  heart.style.left = Math.random() * 100 + 'vw'; 
+  heart.style.fontSize = (10 + Math.random() * 20) + 'px'; 
+  heart.style.animationDuration = (4 + Math.random() * 4) + 's'; 
+  heart.style.opacity = 0.5 + Math.random() * 0.5; 
+  document.body.appendChild(heart); 
+  setTimeout(()=>heart.remove(), parseFloat(heart.style.animationDuration)*1000); 
+} 
+setInterval(createHeart,500); 
+
+// Álbum con comentarios 
+const albumContainer = document.getElementById('album'); 
+const files = [ 
+  "ALBUM1(asdasdkoasd diablo dique caminando porai).png", 
+  "ALBUM2(we mi cabeza we la estas pisando we ayuda we qe riko).png", 
+  "ALBUM3(jajajkaja mira la cara de burro jajajjajaja diabloooi).png", 
+  "ALBUM4(el dia q te escapaste y nos andaban buscando jajakaj).mp4",
+  "ALBUM5(la primera vez q FUIMOS A MI CASA OMG).mp4",
+  "ALBUM6(profesora CON ANEMIA DIABLOJADKSDJ).mp4",
+  "ALBUM7(no seas mamon la vez que te pedi ser mi pareja no mamesalaberga).mp4",
+   "ALBUM8(Goldito secsi jajaj).jpg",
+   "ALBUM9(salimo de cazeria en halloweenjejeje).jpg",
+   "ALBUM10(gaticokanye).webp",
+   "ALBUM11(dique gaticos en halloween).jpg",
+   "ALBUM12(jejejeje locura pt1).jpg",
+   "ALBUM13(jejejeje locura pt2).jpg",
+   "ALBUM14(ojopene).jpg",
+   "ALBUM15(gang).jpg",
+   "ALBUM16(que daiblo estaban hacinedo coño).mp4",
+   "ALBUM17(ola).jpg",
+   "ALBUM18(dique gaticos en halloween pt2).jpg",
+   "ALBUM19(estos coños definitivamente estan mariquiaos).mp4",
+   "ALBUM20(teamo).jpg",
+   "ALBUM21(bechito).jpg",
+   "ALBUM22(no es q realmente estos coños estan demasiado mariquiaos).mp4",
+   "ALBUM23(guen eres un gato ola soy un gato miau).jpg",
+   "ALBUM24(ola perro ola).mp4",
+   "ALBUM25(hijitos como estan les habla su comandante yolotroll).mp4",
+   "ALBUM26(la cama mas angosta der mundo diabloi).mp4",
+
+
+]; 
+const lightbox = document.getElementById('lightbox'); 
+const lightboxContent = document.getElementById('lightboxContent'); 
+const lightboxText = document.getElementById('lightboxText'); 
+const closeBtn = document.getElementById('closeBtn'); 
+const volverBtnBottom = document.getElementById('volverBtnBottom');
+let currentVideo = null; 
+
+files.forEach(fileName=>{ 
+  const ext = fileName.split('.').pop().toLowerCase(); 
+  const isVideo = ext==='mp4'; 
+  const el = document.createElement(isVideo ? 'video' : 'img'); 
+  el.src = fileName; 
+  if(isVideo){ 
+    el.muted=true; 
+    el.loop=true; 
+    el.autoplay=true; 
+    el.addEventListener('mouseenter',()=>el.pause()); 
+    el.addEventListener('mouseleave',()=>el.play()); 
+  } 
+  albumContainer.appendChild(el); 
+  el.addEventListener('click',()=>{ 
+    if(currentVideo){ 
+      currentVideo.pause(); 
+      currentVideo.currentTime = 0; 
+      currentVideo = null; 
+    } 
+    lightboxContent.innerHTML=''; 
+    const match = fileName.match(/\((.*?)\)\.(png|jpg|jpeg|mp4|webp)$/i);
+    lightboxText.textContent = match ? match[1] : ''; 
+
+    // Desactivar y atenuar botón al abrir lightbox
+    volverBtnBottom.style.opacity = '0.2';
+    volverBtnBottom.style.pointerEvents = 'none';
+
+    if(isVideo){ 
+      const video = document.createElement('video'); 
+      video.src = fileName; 
+      video.controls=true; 
+      video.autoplay=true; 
+      video.muted=false; 
+      video.style.maxWidth='calc(100vw - 40px)'; 
+      video.style.maxHeight='calc(100vh - 120px)'; 
+      video.style.borderRadius='15px'; 
+      video.style.boxShadow='0 0 30px var(--accent)'; 
+      video.play(); 
+      lightboxContent.appendChild(video); 
+      currentVideo = video; 
+    } else { 
+      const img = document.createElement('img'); 
+      img.src=fileName; 
+      img.style.maxWidth='calc(100vw - 40px)'; 
+      img.style.maxHeight='calc(100vh - 120px)'; 
+      img.style.borderRadius='15px'; 
+      img.style.boxShadow='0 0 30px var(--accent)'; 
+      lightboxContent.appendChild(img); 
+    } 
+    lightbox.classList.add('active'); 
+  }); 
+}); 
+
+function closeLightbox(){ 
+  lightbox.classList.remove('active'); 
+  lightboxContent.innerHTML=''; 
+  lightboxText.textContent=''; 
+
+  // Restaurar botón
+  volverBtnBottom.style.opacity = '1';
+  volverBtnBottom.style.pointerEvents = 'auto';
+
+  if(currentVideo){ 
+    currentVideo.pause(); 
+    currentVideo.currentTime=0; 
+    currentVideo=null; 
+  } 
+} 
+
+closeBtn.addEventListener('click',closeLightbox); 
+lightbox.addEventListener('click',(e)=>{ 
+  if(e.target===lightbox) closeLightbox(); 
+}); 
+</script> 
+</body> 
+</html>
